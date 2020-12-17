@@ -2,6 +2,7 @@
 git pull origin master
 rm ./base/rollout.yml
 sed -i '' -e '$ d' base/kustomization.yml 
+sed -i -e '$a- service.yml' $PWD/base/kustomization.yml
 git status
 git add --all
 git commit -m "."
