@@ -1,5 +1,8 @@
-resources:
-- deployment.yml
+namePrefix: production-
+commonLabels:
+  variant: production
+bases:
+- ../base
 patches:
 - path: transform_to_rollout.json
   target:
