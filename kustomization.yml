@@ -1,0 +1,10 @@
+resources:
+- deployment.yml
+patches:
+- path: transform_to_rollout.json
+  target:
+    group: apps
+    version: v1
+    kind: Deployment
+patchesStrategicMerge:
+- replica-and-rollout-strategy.yml
