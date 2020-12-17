@@ -1,0 +1,52 @@
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    variant: production
+  name: production-simple-service
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: trivial-go-web-app
+    variant: production
+  type: LoadBalancer
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  labels:
+    variant: production
+  name: production-simple-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: trivial-go-web-app
+  strategy:
+    canary:
+      canaryService: simple-service
+      steps:
+      - setWeight: 20
+      - pause: {}
+      - setWeight: 40
+      - pause:
+          duration: 10
+      - setWeight: 60
+      - pause:
+          duration: 10
+      - setWeight: 80
+      - pause:
+          duration: 10
+  template:
+    metadata:
+      labels:
+        app: trivial-go-web-app
+    spec:
+      containers:
+      - image: docker.io/kostiscodefresh/simple-web-app:3d9b390
+        name: webserver-simple
+        ports:
+        - containerPort: 8080
