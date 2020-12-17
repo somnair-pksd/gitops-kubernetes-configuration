@@ -1,0 +1,84 @@
+version: "1.0"
+stages: 
+  - "pre sync"
+  - "sync app"  
+  - "post sync"
+  - "migrate rollout"
+  - "deploy rollout"  
+steps:  
+  pre_sync:
+    title: "Pre sync commands"
+    type: "freestyle" # Run any command
+    image: "alpine:3.9" # The image in which command will be executed
+    commands:
+      - echo "Sending a metrics marker"
+    stage: "pre sync"    
+  sync_and_wait:
+    title: Sync ArgoCD app and wait
+    type: argocd-sync
+    arguments:
+      context: "argocd"
+      app_name: "${{ARGOCD_APP_NAME}}"
+      wait_healthy: true   
+    stage: "sync app"
+  post_sync:
+    title: "Post sync commands"
+    type: "freestyle" # Run any command
+    image: "alpine:3.9" # The image in which command will be executed
+    commands:
+      - echo "running smoke tests"
+    stage: "post sync"
+  clone_manifest:
+    title: "Cloning repository"
+    type: "git-clone"    
+    repo: "somnair-pksd/gitops-kubernetes-configuration"    
+    stage: "migrate rollout"  
+  change_manifest:          
+    title: "change deployment manifest to rollout manifest"
+    image: "alpine:3.8"
+    working_directory: "${{clone_manifest}}"
+    commands:                 
+        # - cat $REPO_PATH/production.yaml | kyml tmpl -e IMAGE_TAG | tee helm/templates/$CF_REPO_NAME.yaml
+      - cf_export REPO_PATH=$PWD
+      - apk --no-cache add wget      
+      - wget -O kustomize.tar.gz https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2Fv3.8.8/kustomize_v3.8.8_linux_amd64.tar.gz              
+      # - tar -xf kustomize.tar.gz /usr/local/bin/kustomize        
+      - tar -xf kustomize.tar.gz 
+      - ./kustomize build overlays | tee $PWD/base/rollout.yml
+      - cat $PWD/base/rollout.yml
+      - git add .
+    stage: "migrate rollout"    
+  push_env_repo:
+       title: Push production env. changes
+       type: git-commit
+       arguments:
+         repo: devopsparadox/argocd-production
+         git: github-2
+         commit_message: "Adding commit ${{CF_SHORT_REVISION}} from ${{CF_REPO_NAME}}"
+         git_user_name: "${{CF_COMMIT_AUTHOR}}"
+         working_directory: /codefresh/volume/argocd-production
+       stage: "migrate rollout"
+#   github_pr:
+#        title: Creating a pull request
+#        type: github-pr
+#        working_directory: "${{clone_env_repo}}"
+#        arguments:
+#          GITHUB_TOKEN: "${{GITHUB_TOKEN}}"
+#          GITHUB_REPO_OWNER: "${{CF_REPO_OWNER}}"
+#          GITHUB_REPO_NAME: argocd-production
+#          HEAD: "${{CF_REPO_NAME}}-${{CF_SHORT_REVISION}}"
+#          TITLE: "${{CF_SHORT_REVISION}} from ${{CF_REPO_NAME}}"
+#          BASE: master
+#        stage: deploy
+  deploy_rollout:
+   title: Promote Argo rollout
+   type: argocd-rollout   
+   arguments:
+     k8s_context: 'enormous-cod'
+     rollout_name: production-simple-deployment
+     #rollout_name: 'rollout'
+     rollout_namespace: 'dev-som'
+     context: "argocd"
+     app_name: '${{ARGOCD_APP_NAME}}'
+     wait_healthy: true
+   stage: "deploy rollout"
