@@ -1,0 +1,33 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  labels:
+    variant: production
+  name: simple-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: trivial-go-web-app
+  strategy:
+    canary:
+      canaryService: simple-service
+      steps:
+      - setWeight: 20
+      - pause: {}
+      - setWeight: 40
+      - pause: {}
+      - setWeight: 60
+      - pause: {}
+      - setWeight: 80
+      - pause: {}
+  template:
+    metadata:
+      labels:
+        app: trivial-go-web-app
+    spec:
+      containers:
+      - image: docker.io/kostiscodefresh/simple-web-app:3d9b390
+        name: webserver-simple
+        ports:
+        - containerPort: 8080
