@@ -3,7 +3,7 @@ git pull origin master
 k delete -f ./base/rollout.yml
 rm ./base/rollout.yml
 sed -i '' -e '$ d' base/kustomization.yml 
-sed -i -e '$a- service.yml' $PWD/base/kustomization.yml
+sed -i -e '$a- service.yml' ./base/kustomization.yml
 git status
 git add --all
 git commit -m "."
