@@ -2,7 +2,7 @@
 git pull origin master
 k delete -f ./base/rollout.yml
 rm ./base/rollout.yml
-cp ./base/kustomization.yml.orig ./base/kustomization.yml
+cp ./base/kustomization.yml.deployment ./base/kustomization.yml
 git status
 git add --all
 git commit -m "."
