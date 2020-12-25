@@ -1,2 +1,3 @@
-- deployment.yml
-- service.yml
+resources:
+  - deployment.yml
+  - service.yml
